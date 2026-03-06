@@ -791,12 +791,22 @@
     renderQuestion();
   }
 
+  // Deterministic shuffle per question — same order every time, never all-Comporta-first
+  function displayOrder(qi) {
+    const orders = [
+      [0, 1, 2], [1, 2, 0], [2, 0, 1],
+      [0, 2, 1], [1, 0, 2], [2, 1, 0]
+    ];
+    return orders[qi % 6];
+  }
+
   function renderQuestion() {
     const q = QUESTIONS[current];
+    const order = displayOrder(current);
     const pct = ((current + 1) / QUESTIONS.length) * 100;
     document.getElementById('progress-fill').style.width = pct + '%';
     document.getElementById('progress-count').textContent = `Question ${current + 1} of ${QUESTIONS.length}`;
-    const selected = answers[current];
+    const selected = answers[current]; // stores actual option index, not display position
     const isLast = current === QUESTIONS.length - 1;
     document.getElementById('btn-next').disabled = selected === null;
     document.getElementById('btn-next').textContent = isLast ? 'View My Result' : 'Continue';
@@ -807,24 +817,27 @@
         <div class="q-number">Question ${current + 1}</div>
         <div class="q-text">${q.text}</div>
         <div class="options">
-          ${q.options.map((opt, i) => `
-            <button class="option-btn ${selected === i ? 'selected' : ''}" onclick="selectOption(${i})">
-              <span class="option-letter">${letters[i]}</span>
-              <span class="option-content">
-                <span class="option-label">${opt.label}</span>
-                ${opt.desc ? `<span class="option-desc">${opt.desc}</span>` : ''}
-              </span>
-            </button>
-          `).join('')}
+          ${order.map((optIdx, displayIdx) => {
+            const opt = q.options[optIdx];
+            return `
+              <button class="option-btn ${selected === optIdx ? 'selected' : ''}" onclick="selectOption(${optIdx})">
+                <span class="option-letter">${letters[displayIdx]}</span>
+                <span class="option-content">
+                  <span class="option-label">${opt.label}</span>
+                  ${opt.desc ? `<span class="option-desc">${opt.desc}</span>` : ''}
+                </span>
+              </button>`;
+          }).join('')}
         </div>
       </div>
     `;
   }
 
-  function selectOption(i) {
-    answers[current] = i;
+  function selectOption(optIdx) {
+    answers[current] = optIdx;
     document.getElementById('btn-next').disabled = false;
-    document.querySelectorAll('.option-btn').forEach((btn, idx) => btn.classList.toggle('selected', idx === i));
+    // Re-render to reflect selection (order stays the same)
+    renderQuestion();
   }
 
   function goNext() {
